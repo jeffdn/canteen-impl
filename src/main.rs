@@ -121,7 +121,7 @@ fn create_person(req: &Request) -> Response {
     res
 }
 
-fn get_many_person(req: &Request) -> Response {
+fn get_many_person(_: &Request) -> Response {
     let mut res = Response::new();
     res.set_content_type("application/json");
 
@@ -190,7 +190,7 @@ fn get_single_person(req: &Request) -> Response {
     res
 }
 
-fn hello_world(req: &Request) -> Response {
+fn hello_world(_: &Request) -> Response {
     let mut res = Response::new();
 
     res.append("hello, world!");
