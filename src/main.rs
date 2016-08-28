@@ -191,22 +191,18 @@ fn get_single_person(req: &Request) -> Response {
 }
 
 fn hello_world(_: &Request) -> Response {
-    let mut res = Response::new();
-
-    res.append("hello, world!");
-
-    res
+    make_response("hello, world!", "text/plain", 200)
 }
 
 fn main() {
     let mut cnt = Canteen::new(("127.0.0.1", 8080));
 
     cnt.set_default(Route::err_404);
-    cnt.add_route("/", vec![Method::Get], hello_world)
-       .add_route("/person", vec![Method::Post], create_person)
-       .add_route("/person", vec![Method::Get], get_many_person)
-       .add_route("/person/<int:person_id>", vec![Method::Get], get_single_person)
-       .add_route("/src/<path:path>", vec![Method::Get], Route::static_file);
+    cnt.add_route("/", &[Method::Get], hello_world)
+       .add_route("/person", &[Method::Post], create_person)
+       .add_route("/person", &[Method::Get], get_many_person)
+       .add_route("/person/<int:person_id>", &[Method::Get], get_single_person)
+       .add_route("/src/<path:path>", &[Method::Get], Route::static_file);
 
     cnt.run();
 }
