@@ -3,7 +3,8 @@ extern crate rustc_serialize;
 extern crate postgres;
 extern crate chrono;
 
-use canteen::*;
+use canteen::{Canteen, Request, Response, Method};
+use canteen::utils;
 
 use rustc_serialize::json;
 use rustc_serialize::{Encoder, Encodable};
@@ -191,18 +192,18 @@ fn get_single_person(req: &Request) -> Response {
 }
 
 fn hello_world(_: &Request) -> Response {
-    make_response("hello, world!", "text/plain", 200)
+    utils::make_response("hello, world!", "text/plain", 200)
 }
 
 fn main() {
     let mut cnt = Canteen::new(("127.0.0.1", 8080));
 
-    cnt.set_default(Route::err_404);
+    cnt.set_default(utils::err_404);
     cnt.add_route("/", &[Method::Get], hello_world)
        .add_route("/person", &[Method::Post], create_person)
        .add_route("/person", &[Method::Get], get_many_person)
        .add_route("/person/<int:person_id>", &[Method::Get], get_single_person)
-       .add_route("/src/<path:path>", &[Method::Get], Route::static_file);
+       .add_route("/src/<path:path>", &[Method::Get], utils::static_file);
 
     cnt.run();
 }
