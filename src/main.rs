@@ -3,7 +3,7 @@ extern crate rustc_serialize;
 extern crate postgres;
 extern crate chrono;
 
-use canteen::{Canteen, Request, Response, Method};
+use canteen::{Canteen, Context, Response, Method};
 use canteen::utils;
 
 use rustc_serialize::json;
@@ -60,11 +60,11 @@ impl Decodable for Person {
     }
 }
 
-fn create_person(req: &Request) -> Response {
+fn create_person(ctx: &Context) -> Response {
     let mut res = Response::new();
     res.set_content_type("application/json");
 
-    let pers: Person = json::decode(&String::from_utf8(req.payload.clone()).unwrap()).unwrap();
+    let pers: Person = json::decode(&String::from_utf8(ctx.request.payload.clone()).unwrap()).unwrap();
 
     let conn = Connection::connect("postgresql://jeff@localhost/jeff", SslMode::None).unwrap();
     let cur = conn.query("insert into person (first_name, last_name, dob)\
@@ -122,7 +122,7 @@ fn create_person(req: &Request) -> Response {
     res
 }
 
-fn get_many_person(_: &Request) -> Response {
+fn get_many_person(_: &Context) -> Response {
     let mut res = Response::new();
     res.set_content_type("application/json");
 
@@ -153,11 +153,11 @@ fn get_many_person(_: &Request) -> Response {
     res
 }
 
-fn get_single_person(req: &Request) -> Response {
+fn get_single_person(ctx: &Context) -> Response {
     let mut res = Response::new();
     res.set_content_type("application/json");
 
-    let person_id: i32 = req.get("person_id");
+    let person_id: i32 = ctx.request.get("person_id");
 
     let conn = Connection::connect("postgresql://jeff@localhost/jeff", SslMode::None).unwrap();
     let cur = conn.query("select id, first_name, last_name, dob from person where id = $1", &[&person_id]);
@@ -191,7 +191,7 @@ fn get_single_person(req: &Request) -> Response {
     res
 }
 
-fn hello_world(_: &Request) -> Response {
+fn hello_world(_: &Context) -> Response {
     utils::make_response("hello, world!", "text/plain", 200)
 }
 
