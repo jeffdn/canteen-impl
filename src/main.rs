@@ -60,39 +60,7 @@ impl Decodable for Person {
     }
 }
 
-fn create_person(req: &Request) -> Response {
-    let mut res = Response::new();
-    res.set_content_type("application/json");
-
-    let pers: Person = json::decode(&String::from_utf8(req.payload.clone()).unwrap()).unwrap();
-
-    let conn = Connection::connect("postgresql://jeff@localhost/jeff", SslMode::None).unwrap();
-    let cur = conn.query("insert into person (first_name, last_name, dob)\
-                          values ($1, $2, $3) returning id",
-                          &[&pers.first_name, &pers.last_name, &pers.dob]);
-
-    let person_id: i32;
-
-    match cur {
-        Ok(rows)    => {
-            match rows.len() {
-                1 => {
-                    person_id = rows.get(0).get("id");
-                },
-                _ => {
-                    res.set_code(500);
-                    res.append(String::from("{ message: 'person couldn\'t be created' }"));
-                    return res;
-                },
-            }
-        },
-        Err(e)      => {
-            res.set_code(500);
-            res.append(format!("{{ message: '{:?}' }}", e));
-            return res;
-        }
-    }
-
+fn _person_response(conn: &Connection, person_id: i32) -> Response {
     match conn.query("select id, first_name, last_name, dob from person where id = $1", &[&person_id]) {
         Ok(rows)    => {
             match rows.len() {
@@ -105,27 +73,47 @@ fn create_person(req: &Request) -> Response {
                         dob:        row.get("dob"),
                     };
 
-                    res.append(json::encode(&p).unwrap());
+                    Response::as_json(&p)
+                },
+                0 => utils::err_404_json("no results for given ID"),
+                _ => utils::err_404_json("too many results for given ID"),
+            }
+        },
+        Err(e)      => {
+            utils::err_500_json(&format!("{:?}", e))
+        }
+    }
+}
+
+fn create_person(req: &Request) -> Response {
+    let person_id: i32;
+    let pers: Person = json::decode(&String::from_utf8(req.payload.clone()).unwrap()).unwrap();
+
+    let conn = Connection::connect("postgresql://jeff@localhost/jeff", SslMode::None).unwrap();
+    let cur = conn.query("insert into person (first_name, last_name, dob)\
+                          values ($1, $2, $3) returning id",
+                          &[&pers.first_name, &pers.last_name, &pers.dob]);
+
+    match cur {
+        Ok(rows)    => {
+            match rows.len() {
+                1 => {
+                    person_id = rows.get(0).get("id");
                 },
                 _ => {
-                    res.set_code(404);
-                    res.append(String::from("{ message: 'not found' }"));
+                    return utils::err_500_json("person couldn\'t be created");
                 },
             }
         },
         Err(e)      => {
-            res.set_code(500);
-            res.append(format!("{{ message: '{:?}' }}", e));
+            return utils::err_500_json(&format!("{:?}", e))
         }
     }
 
-    res
+    _person_response(&conn, person_id)
 }
 
 fn get_many_person(_: &Request) -> Response {
-    let mut res = Response::new();
-    res.set_content_type("application/json");
-
     let conn = Connection::connect("postgresql://jeff@localhost/jeff", SslMode::None).unwrap();
     let cur = conn.query("select id, first_name, last_name, dob from person order by id", &[]);
 
@@ -142,53 +130,20 @@ fn get_many_person(_: &Request) -> Response {
                 });
             }
 
-            res.append(json::encode(&people).unwrap());
+            Response::as_json(&people)
+
         },
         Err(e)      => {
-            res.set_code(500);
-            res.append(format!("{{ message: '{:?}' }}", e));
+            utils::err_500_json(&format!("{:?}", e))
         }
     }
-
-    res
 }
 
 fn get_single_person(req: &Request) -> Response {
-    let mut res = Response::new();
-    res.set_content_type("application/json");
-
     let person_id: i32 = req.get("person_id");
-
     let conn = Connection::connect("postgresql://jeff@localhost/jeff", SslMode::None).unwrap();
-    let cur = conn.query("select id, first_name, last_name, dob from person where id = $1", &[&person_id]);
 
-    match cur {
-        Ok(rows)    => {
-            match rows.len() {
-                1 => {
-                    let row = rows.get(0);
-                    let p = Person {
-                        id:         row.get("id"),
-                        first_name: row.get("first_name"),
-                        last_name:  row.get("last_name"),
-                        dob:        row.get("dob"),
-                    };
-
-                    res.append(json::encode(&p).unwrap());
-                },
-                _ => {
-                    res.set_code(404);
-                    res.append(String::from("{ message: 'not found' }"));
-                },
-            }
-        },
-        Err(e)      => {
-            res.set_code(500);
-            res.append(format!("{{ message: '{:?}' }}", e));
-        }
-    }
-
-    res
+    _person_response(&conn, person_id)
 }
 
 fn hello_world(_: &Request) -> Response {
