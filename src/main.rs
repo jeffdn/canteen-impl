@@ -6,7 +6,6 @@ extern crate chrono;
 use canteen::{Canteen, Request, Response, Method};
 use canteen::utils;
 
-use rustc_serialize::json;
 use rustc_serialize::{Encoder, Encodable};
 use rustc_serialize::{Decoder, Decodable};
 use postgres::{Connection, SslMode};
@@ -87,7 +86,7 @@ fn _person_response(conn: &Connection, person_id: i32) -> Response {
 
 fn create_person(req: &Request) -> Response {
     let person_id: i32;
-    let pers: Person = json::decode(&String::from_utf8(req.payload.clone()).unwrap()).unwrap();
+    let pers: Person = req.get_json_obj().unwrap();
 
     let conn = Connection::connect("postgresql://jeff@localhost/jeff", SslMode::None).unwrap();
     let cur = conn.query("insert into person (first_name, last_name, dob)\
