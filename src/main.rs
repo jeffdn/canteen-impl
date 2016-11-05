@@ -8,7 +8,7 @@ use canteen::utils;
 
 use rustc_serialize::{Encoder, Encodable};
 use rustc_serialize::{Decoder, Decodable};
-use postgres::{Connection, SslMode};
+use postgres::{Connection, TlsMode};
 
 type Date = chrono::NaiveDate;
 
@@ -88,7 +88,7 @@ fn create_person(req: &Request) -> Response {
     let person_id: i32;
     let pers: Person = req.get_json_obj().unwrap();
 
-    let conn = Connection::connect("postgresql://jeff@localhost/jeff", SslMode::None).unwrap();
+    let conn = Connection::connect("postgresql://jeff@localhost/jeff", TlsMode::None).unwrap();
     let cur = conn.query("insert into person (first_name, last_name, dob)\
                           values ($1, $2, $3) returning id",
                           &[&pers.first_name, &pers.last_name, &pers.dob]);
@@ -113,7 +113,7 @@ fn create_person(req: &Request) -> Response {
 }
 
 fn get_many_person(_: &Request) -> Response {
-    let conn = Connection::connect("postgresql://jeff@localhost/jeff", SslMode::None).unwrap();
+    let conn = Connection::connect("postgresql://jeff@localhost/jeff", TlsMode::None).unwrap();
     let cur = conn.query("select id, first_name, last_name, dob from person order by id", &[]);
 
     match cur {
@@ -140,7 +140,7 @@ fn get_many_person(_: &Request) -> Response {
 
 fn get_single_person(req: &Request) -> Response {
     let person_id: i32 = req.get("person_id");
-    let conn = Connection::connect("postgresql://jeff@localhost/jeff", SslMode::None).unwrap();
+    let conn = Connection::connect("postgresql://jeff@localhost/jeff", TlsMode::None).unwrap();
 
     _person_response(&conn, person_id)
 }
