@@ -24,10 +24,10 @@ struct Person {
 impl Encodable for Person {
     fn encode<S: Encoder>(&self, s: &mut S) -> Result<(), S::Error> {
         s.emit_struct("Person", 4, |s| {
-            try!(s.emit_struct_field("id", 0, |s| { s.emit_i32(self.id) }));
-            try!(s.emit_struct_field("first_name", 1, |s| { s.emit_str(&self.first_name) }));
-            try!(s.emit_struct_field("last_name", 2, |s| { s.emit_str(&self.last_name) }));
-            try!(s.emit_struct_field("dob", 3, |s| { s.emit_str(&self.dob.format("%Y-%m-%d").to_string()) }));
+            s.emit_struct_field("id", 0, |s| { s.emit_i32(self.id) })?;
+            s.emit_struct_field("first_name", 1, |s| { s.emit_str(&self.first_name) })?;
+            s.emit_struct_field("last_name", 2, |s| { s.emit_str(&self.last_name) })?;
+            s.emit_struct_field("dob", 3, |s| { s.emit_str(&self.dob.format("%Y-%m-%d").to_string()) })?;
 
             Ok(())
         })
@@ -37,9 +37,9 @@ impl Encodable for Person {
 impl Decodable for Person {
     fn decode<D: Decoder>(d: &mut D) -> Result<Person, D::Error> {
         d.read_struct("root", 3, |d| {
-            let first_name = try!(d.read_struct_field("first_name", 0, |d| { d.read_str() }));
-            let last_name = try!(d.read_struct_field("last_name", 0, |d| { d.read_str() }));
-            let pre_dob = try!(d.read_struct_field("dob", 0, |d| { d.read_str() }));
+            let first_name = d.read_struct_field("first_name", 0, |d| { d.read_str() })?;
+            let last_name = d.read_struct_field("last_name", 0, |d| { d.read_str() })?;
+            let pre_dob = d.read_struct_field("dob", 0, |d| { d.read_str() })?;
 
             match Date::parse_from_str(&pre_dob, "%Y-%m-%d") {
                 Ok(dob) => {
