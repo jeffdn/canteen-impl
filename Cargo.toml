@@ -4,7 +4,9 @@ version = "0.3.6"
 authors = ["jeffdn@gmail.com"]
 
 [dependencies]
-postgres = { version = "0.13", features = ["with-chrono"] }
-rustc-serialize = "0.3"
-chrono = "0.2"
-canteen = "0.3"
+postgres = { version = "0.14", features = ["with-chrono"] }
+serde = "1.0"
+serde_json = "1.0"
+serde_derive = "1.0"
+chrono = { version = "0.3", features = ["serde"] }
+canteen = "0.4"
