@@ -114,7 +114,8 @@ fn hello_world(_: &Request) -> Response {
 }
 
 fn main() {
-    let mut cnt = Canteen::new(("127.0.0.1", 8080));
+    let mut cnt = Canteen::new();
+    cnt.bind(("127.0.0.1", 8080));
 
     cnt.set_default(utils::err_404);
     cnt.add_route("/", &[Method::Get], hello_world)

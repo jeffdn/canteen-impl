@@ -1,6 +1,6 @@
 [package]
 name = "canteen-impl"
-version = "0.4.1"
+version = "0.5.0"
 authors = ["jeffdn@gmail.com"]
 
 [dependencies]
@@ -9,5 +9,5 @@ serde = "1.0"
 serde_json = "1.0"
 serde_derive = "1.0"
 chrono = { version = "0.4", features = ["serde"] }
-#canteen = { version = "0.4", path = "../rust-canteen" }
-canteen = "0.4"
+#canteen = { version = "0.5", path = "../rust-canteen" }
+canteen = "0.5"
