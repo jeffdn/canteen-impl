@@ -33,26 +33,29 @@ struct Person {
     dob:        Date,
 }
 
+impl Person {
+    pub fn from_row(row: postgres::row::Row) -> Person {
+        Person {
+            id:         row.get("id"),
+            first_name: row.get("first_name"),
+            last_name:  row.get("last_name"),
+            dob:        row.get("dob"),
+        }
+    }
+}
+
 fn _person_response(conn: &mut Client, person_id: i32) -> Response {
     match conn.query("select id, first_name, last_name, dob from person where id = $1", &[&person_id]) {
-        Ok(mut rows)    => {
-            match rows.len() {
-                1 => {
-                    let row = rows.pop().unwrap();
-                    let p = Person {
-                        id:         row.get("id"),
-                        first_name: row.get("first_name"),
-                        last_name:  row.get("last_name"),
-                        dob:        row.get("dob"),
-                    };
-
+        Ok(mut rows) => {
+            match rows.pop() {
+                Some(row) => {
+                    let p = Person::from_row(row);
                     Response::as_json(&p)
                 },
-                0 => utils::err_404_json("no results for given ID"),
-                _ => utils::err_404_json("too many results for given ID"),
+                None => utils::err_404_json("no results for given ID"),
             }
         },
-        Err(e)      => {
+        Err(e) => {
             utils::err_500_json(&format!("{:?}", e))
         }
     }
@@ -68,17 +71,13 @@ fn create_person(req: &Request) -> Response {
                           &[&pers.first_name, &pers.last_name, &pers.dob]);
 
     match cur {
-        Ok(mut rows)    => {
-            match rows.len() {
-                1 => {
-                    person_id = rows.pop().unwrap().get("id");
-                },
-                _ => {
-                    return utils::err_500_json("person couldn\'t be created");
-                },
+        Ok(mut rows) => {
+            match rows.pop() {
+                Some(row) => { person_id = row.get("id"); },
+                None => { return utils::err_500_json("person couldn\'t be created"); },
             }
         },
-        Err(e)      => {
+        Err(e) => {
             return utils::err_500_json(&format!("{:?}", e))
         }
     }
@@ -91,20 +90,12 @@ fn get_many_person(_: &Request) -> Response {
     let cur = conn.query("select id, first_name, last_name, dob from person order by id", &[]);
 
     match cur {
-        Ok(rows)    => {
-            let people: Vec<Person> = rows.into_iter().map(|row| {
-                Person {
-                    id:         row.get("id"),
-                    first_name: row.get("first_name"),
-                    last_name:  row.get("last_name"),
-                    dob:        row.get("dob"),
-                }
-            }).collect();
-
+        Ok(rows) => {
+            let people: Vec<Person> = rows.into_iter().map(Person::from_row).collect();
             Response::as_json(&people)
 
         },
-        Err(e)      => {
+        Err(e) => {
             utils::err_500_json(&format!("{:?}", e))
         }
     }
