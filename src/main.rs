@@ -1,17 +1,27 @@
-extern crate canteen;
-extern crate serde;
-extern crate serde_json;
-extern crate postgres;
-extern crate chrono;
-
 #[macro_use]
 extern crate serde_derive;
+
+#[macro_use]
+extern crate lazy_static;
 
 use canteen::{Canteen, Request, Response, Method};
 use canteen::utils;
 
-use postgres::{Connection, TlsMode};
+use postgres::{Client, NoTls};
+use r2d2_postgres::PostgresConnectionManager;
+
 type Date = chrono::NaiveDate;
+
+lazy_static! {
+    static ref DB_POOL: r2d2::Pool<PostgresConnectionManager<NoTls>> = {
+        let manager = PostgresConnectionManager::new(
+            "host=localhost user=jeff dbname=jeff".parse().unwrap(),
+            NoTls,
+        );
+
+        r2d2::Pool::new(manager).unwrap()
+    };
+}
 
 /* a full person record */
 #[derive(Debug, Serialize, Deserialize)]
@@ -23,12 +33,12 @@ struct Person {
     dob:        Date,
 }
 
-fn _person_response(conn: &Connection, person_id: i32) -> Response {
+fn _person_response(conn: &mut Client, person_id: i32) -> Response {
     match conn.query("select id, first_name, last_name, dob from person where id = $1", &[&person_id]) {
-        Ok(rows)    => {
+        Ok(mut rows)    => {
             match rows.len() {
                 1 => {
-                    let row = rows.get(0);
+                    let row = rows.pop().unwrap();
                     let p = Person {
                         id:         row.get("id"),
                         first_name: row.get("first_name"),
@@ -52,16 +62,16 @@ fn create_person(req: &Request) -> Response {
     let person_id: i32;
     let pers: Person = req.get_json_obj().unwrap();
 
-    let conn = Connection::connect("postgresql://jeff@localhost/jeff", TlsMode::None).unwrap();
+    let mut conn = DB_POOL.clone().get().unwrap();
     let cur = conn.query("insert into person (first_name, last_name, dob)\
                           values ($1, $2, $3) returning id",
                           &[&pers.first_name, &pers.last_name, &pers.dob]);
 
     match cur {
-        Ok(rows)    => {
+        Ok(mut rows)    => {
             match rows.len() {
                 1 => {
-                    person_id = rows.get(0).get("id");
+                    person_id = rows.pop().unwrap().get("id");
                 },
                 _ => {
                     return utils::err_500_json("person couldn\'t be created");
@@ -73,25 +83,23 @@ fn create_person(req: &Request) -> Response {
         }
     }
 
-    _person_response(&conn, person_id)
+    _person_response(&mut conn, person_id)
 }
 
 fn get_many_person(_: &Request) -> Response {
-    let conn = Connection::connect("postgresql://jeff@localhost/jeff", TlsMode::None).unwrap();
+    let mut conn = DB_POOL.clone().get().unwrap();
     let cur = conn.query("select id, first_name, last_name, dob from person order by id", &[]);
 
     match cur {
         Ok(rows)    => {
-            let mut people: Vec<Person> = Vec::new();
-
-            for row in rows.iter() {
-                people.push(Person {
+            let people: Vec<Person> = rows.into_iter().map(|row| {
+                Person {
                     id:         row.get("id"),
                     first_name: row.get("first_name"),
                     last_name:  row.get("last_name"),
                     dob:        row.get("dob"),
-                });
-            }
+                }
+            }).collect();
 
             Response::as_json(&people)
 
@@ -104,9 +112,9 @@ fn get_many_person(_: &Request) -> Response {
 
 fn get_single_person(req: &Request) -> Response {
     let person_id: i32 = req.get("person_id");
-    let conn = Connection::connect("postgresql://jeff@localhost/jeff", TlsMode::None).unwrap();
+    let mut conn = DB_POOL.clone().get().unwrap();
 
-    _person_response(&conn, person_id)
+    _person_response(&mut conn, person_id)
 }
 
 fn hello_world(_: &Request) -> Response {

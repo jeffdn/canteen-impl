@@ -1,7 +1,9 @@
 [package]
 name = "canteen-impl"
-version = "0.5.1"
+version = "0.5.3"
 authors = ["jeffdn@gmail.com"]
+
+edition = "2018"
 
 include = [
     'src/*',
@@ -10,7 +12,10 @@ include = [
 ]
 
 [dependencies]
-postgres = { version = "0.15", features = ["with-chrono"] }
+lazy_static = "1.4"
+r2d2 = "0.8"
+r2d2_postgres = "0.16"
+postgres = { version = "0.17", features = ["with-chrono-0_4"] }
 serde = "1.0"
 serde_json = "1.0"
 serde_derive = "1.0"
